@@ -576,3 +576,14 @@ _fe_dir = os.path.join(
 )
 if os.path.exists(_fe_dir):
     app.mount("/app", StaticFiles(directory=_fe_dir, html=True), name="frontend")
+
+
+@app.on_event("startup")
+async def print_startup_banner():
+    print("\n" + "="*55)
+    print("        AQUAPREDICT AI | SYSTEM RUNNING")
+    print("="*55)
+    print("  [NEW] HTML Frontend:   http://127.0.0.1:8000/app/")
+    print("  [ALT] Streamlit Dash:  http://127.0.0.1:8501")
+    print("  API Swagger UI:        http://127.0.0.1:8000/docs")
+    print("="*55 + "\n")
