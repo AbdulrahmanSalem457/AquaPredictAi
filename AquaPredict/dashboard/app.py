@@ -70,7 +70,8 @@ with st.sidebar.expander("تغيير كلمة المرور"):
             st.error("⚠️ كلمة المرور غير متطابقة أو قصيرة جداً.")
 
 st.title("💧 نظام إدارة محطات التحلية الذكي - AquaPredict Enterprise (Simulation Twin)")
-API_BASE_URL = "http://127.0.0.1:8000/api/v1"
+import os
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api/v1")
 HEADERS = {"X-API-Key": "AQUA_SECURE_KEY_2026", "Content-Type": "application/json"}
 
 st.sidebar.header("🎛️ لوحة محاكاة وإدخال الحساسات")
