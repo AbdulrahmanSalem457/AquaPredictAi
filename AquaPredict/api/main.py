@@ -590,7 +590,6 @@ async def print_startup_banner():
 from fpdf import FPDF
 import os
 import base64
-import datetime
 
 ARCHIVE_DIR = "archived_reports"
 if not os.path.exists(ARCHIVE_DIR):
@@ -604,7 +603,7 @@ def generate_pdf_report_api(sensors: StationSensors, api_key: str = Depends(get_
     pdf.cell(200, 10, txt="AquaPredict Industrial Station Simulation Report", ln=True, align="C")
     pdf.set_font("Arial", size=11)
     
-    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     pdf.cell(200, 10, txt=f"Report Generated: {current_time}", ln=True, align="C")
     pdf.ln(10)
     pdf.set_font("Arial", size=12, style="B")
@@ -618,7 +617,7 @@ def generate_pdf_report_api(sensors: StationSensors, api_key: str = Depends(get_
     pdf.cell(200, 10, txt=f"Temperature: {sensors.Temperature} C", ln=True)
     pdf.cell(200, 10, txt=f"pH Level: {sensors.pH_Level}", ln=True)
     
-    file_name = f"AquaPredict_Report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    file_name = f"AquaPredict_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     file_path = os.path.join(ARCHIVE_DIR, file_name)
     pdf.output(file_path)
     
