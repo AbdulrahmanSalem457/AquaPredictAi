@@ -1,6 +1,6 @@
-# =====================================================================
+﻿# =====================================================================
 # مشروع AquaPredict - لوحة التحكم المركزية (Enterprise Edition)
-# النسخة النهائية المنظفة والخالية من أي أخطاء برمجية
+# النسخة النهائية مع تجميع كل أدوات الذكاء الاصطناعي في تاب مستقل (AI Core)
 # =====================================================================
 
 import streamlit as st
@@ -76,7 +76,6 @@ HEADERS = {"X-API-Key": "AQUA_SECURE_KEY_2026", "Content-Type": "application/jso
 st.sidebar.header("🎛️ لوحة محاكاة وإدخال الحساسات")
 st.sidebar.markdown("*تحكم في متغيرات محطة التحلية البحرية (نموذج محاكاة الغردقة).*")
 
-# تهيئة القيم في Session State لأول مرة لضمان التفاعل اللحظي
 if "pressure_val" not in st.session_state:
     st.session_state.pressure_val = 65.0
     st.session_state.salinity_val = 35000.0
@@ -88,7 +87,6 @@ if "pressure_val" not in st.session_state:
     st.session_state.power_val = 45.0
     st.session_state.membrane_val = 6.0
 
-# دالة لتحديث قيم الحساسات تلقائياً عند تغيير السيناريو من القائمة المنسدلة
 def update_scenario_values():
     choice = st.session_state.scenario_selector
     if "الوضع الطبيعي" in choice:
@@ -137,9 +135,8 @@ def update_scenario_values():
         st.session_state.vib_val = 4.0
         st.session_state.power_val = 70.0
 
-# القائمة المنسدلة للسيناريوهات مع ربطها بدالة التحديث
 scenario_choice = st.sidebar.selectbox(
-    "🎯 سيناريو العرض السريع (Scenario Engine):", 
+    "🎯 سيناريو العرض السريع (Scenario Engine):",
     [
         "الوضع الطبيعي الآمن (Normal Operation)",
         "سيناريو 1: ترسبات الأغشية (Membrane Fouling)",
@@ -151,15 +148,14 @@ scenario_choice = st.sidebar.selectbox(
     on_change=update_scenario_values
 )
 
-# تعريف عناصر التحكم (Sliders) وربطها بـ Session State
-pressure = st.sidebar.slider("الضغط (Pressure - Bar)", 0.0, 250.0, key="pressure_val")
-salinity = st.sidebar.slider("الملوحة (Salinity - PPM)", 0.0, 100000.0, key="salinity_val", step=100.0)
-temperature = st.sidebar.slider("درجة الحرارة (Temperature - C)", 0.0, 100.0, key="temp_val")
-flow_rate = st.sidebar.slider("معدل التدفق (Flow Rate - m3/h)", 0.0, 500.0, key="flow_val", step=1.0)
-ph = st.sidebar.slider("مستوى الحموضة (pH)", 0.0, 14.0, key="ph_val", step=0.1)
-turbidity = st.sidebar.slider("التعكر (Turbidity - NTU)", 0.0, 100.0, key="turb_val", step=0.1)
-vibration = st.sidebar.slider("الاهتزاز (Vibration - mm/s)", 0.0, 100.0, key="vib_val", step=0.1)
-power_kw = st.sidebar.slider("الطاقة المستهلكة (Power - kW)", 10.0, 200.0, key="power_val", step=1.0)
+pressure    = st.sidebar.slider("الضغط (Pressure - Bar)",              0.0, 250.0,   key="pressure_val")
+salinity    = st.sidebar.slider("الملوحة (Salinity - PPM)",            0.0, 100000.0, key="salinity_val",  step=100.0)
+temperature = st.sidebar.slider("درجة الحرارة (Temperature - C)",     0.0, 100.0,   key="temp_val")
+flow_rate   = st.sidebar.slider("معدل التدفق (Flow Rate - m3/h)",      0.0, 500.0,   key="flow_val",      step=1.0)
+ph          = st.sidebar.slider("مستوى الحموضة (pH)",                  0.0, 14.0,    key="ph_val",        step=0.1)
+turbidity   = st.sidebar.slider("التعكر (Turbidity - NTU)",            0.0, 100.0,   key="turb_val",      step=0.1)
+vibration   = st.sidebar.slider("الاهتزاز (Vibration - mm/s)",         0.0, 100.0,   key="vib_val",       step=0.1)
+power_kw    = st.sidebar.slider("الطاقة المستهلكة (Power - kW)",       10.0, 200.0,  key="power_val",     step=1.0)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🧪 معاملات نموذج التحلية المتقدم")
@@ -172,7 +168,12 @@ payload = {
 
 desal_payload = {
     "feed_tds_mgL": salinity, "feed_pressure_bar": pressure,
-    "feed_temp_C": temperature, "feed_flow_m3h": flow_rate, "membrane_age_months": membrane_age
+    "feed_temp_C": temperature, "feed_flow_m3h": flow_rate,
+    "membrane_age_months": membrane_age
+}
+
+ai_plume_payload = {
+    "Turbidity": turbidity, "Temperature": temperature, "Salinity": salinity
 }
 
 ARCHIVE_DIR = "archived_reports"
@@ -191,10 +192,10 @@ def generate_pdf_report():
     pdf.set_font("Arial", size=12, style="B")
     pdf.cell(200, 10, txt="--- Current Sensor Readings ---", ln=True)
     pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Pressure: {pressure} Bar", ln=True)
-    pdf.cell(200, 10, txt=f"Vibration: {vibration} mm/s", ln=True)
-    pdf.cell(200, 10, txt=f"Turbidity: {turbidity} NTU", ln=True)
-    pdf.cell(200, 10, txt=f"Flow Rate: {flow_rate} m3/h", ln=True)
+    pdf.cell(200, 10, txt=f"Pressure: {pressure} Bar",       ln=True)
+    pdf.cell(200, 10, txt=f"Vibration: {vibration} mm/s",   ln=True)
+    pdf.cell(200, 10, txt=f"Turbidity: {turbidity} NTU",    ln=True)
+    pdf.cell(200, 10, txt=f"Flow Rate: {flow_rate} m3/h",   ln=True)
     file_name = f"AquaPredict_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     file_path = os.path.join(ARCHIVE_DIR, file_name)
     pdf.output(file_path)
@@ -204,7 +205,7 @@ def generate_pdf_report():
 st.sidebar.markdown("---")
 if st.sidebar.button("⚙️ إنشاء وأرشفة تقرير جديد"):
     pdf_bytes, file_name = generate_pdf_report()
-    st.session_state["pdf_bytes"] = pdf_bytes
+    st.session_state["pdf_bytes"]    = pdf_bytes
     st.session_state["pdf_filename"] = file_name
     st.sidebar.success(f"✅ تم حفظ نسخة في مجلد '{ARCHIVE_DIR}'")
 
@@ -223,7 +224,6 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
 def render_digital_twin_map(station_status, station_pressure):
     st.markdown("### 🗺️ التوأم الرقمي ونظام الخرائط الجغرافية الحية (محطة الغردقة - محاكاة)")
     station_lat, station_lon = 27.2579, 33.8116
-    
     marker_color = "green" if station_status == "LOW" else ("orange" if station_status == "HIGH" else "red")
     m = folium.Map(location=[station_lat, station_lon], zoom_start=11)
     folium.Marker(
@@ -232,45 +232,54 @@ def render_digital_twin_map(station_status, station_pressure):
         tooltip="موقع محطة التحلية الرئيسي",
         icon=folium.Icon(color=marker_color, icon="tint", prefix="fa")
     ).add_to(m)
-    folium.PolyLine([[station_lat + 0.04, station_lon - 0.04], [station_lat, station_lon]], color="blue", weight=6, tooltip="خط السحب البحري").add_to(m)
+    folium.PolyLine(
+        [[station_lat + 0.04, station_lon - 0.04], [station_lat, station_lon]],
+        color="blue", weight=6, tooltip="خط السحب البحري"
+    ).add_to(m)
     st_folium(m, use_container_width=True, height=350)
 
-# تنظيم التابات الأربعة
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🎛️ غرفة التحكم (SCADA)", 
-    "⚡ الكفاءة ونظام النبض والنموذج الفيزيائي", 
-    "🚨 التنبيهات والأمن السيبراني", 
-    "🚀 وحدة الذكاء الاصطناعي ومحرك القرار"
+# ======================================================
+# تنظيم الـ 5 تابات
+# ======================================================
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🎛️ غرفة التحكم (SCADA)",
+    "⚡ الكفاءة والنموذج الفيزيائي",
+    "🤖 مركز الذكاء الاصطناعي (AI Core)",
+    "🚨 التنبيهات والأمن السيبراني",
+    "📜 التقارير والبيانات"
 ])
 
+# ── Tab 1: SCADA ──────────────────────────────────────
 with tab1:
     st.subheader("مراقبة الحساسات الحية ومؤشرات الأداء اللحظية (Gauges)")
+
     def create_gauge(value, title, max_val, color="darkblue"):
         fig = go.Figure(go.Indicator(
-            mode = "gauge+number", value = value, title = {'text': title},
-            gauge = {'axis': {'range': [None, max_val]}, 'bar': {'color': color}}
+            mode="gauge+number", value=value, title={"text": title},
+            gauge={"axis": {"range": [None, max_val]}, "bar": {"color": color}}
         ))
         fig.update_layout(height=250, margin=dict(l=10, r=10, t=40, b=10))
         return fig
 
     col_g1, col_g2, col_g3 = st.columns(3)
-    with col_g1: st.plotly_chart(create_gauge(pressure, "الضغط (bar)", 250, "red" if pressure > 95 else ("orange" if pressure > 80 else "blue")), use_container_width=True)
-    with col_g2: st.plotly_chart(create_gauge(vibration, "الاهتزاز (mm/s)", 100, "red" if vibration > 4.5 else ("orange" if vibration > 3.0 else "green")), use_container_width=True)
-    with col_g3: st.plotly_chart(create_gauge(turbidity, "التعكر (NTU)", 100, "red" if turbidity > 2.5 else "purple"), use_container_width=True)
+    with col_g1:
+        st.plotly_chart(create_gauge(pressure,  "الضغط (bar)",       250, "red" if pressure  > 95  else ("orange" if pressure  > 80  else "blue")),  use_container_width=True)
+    with col_g2:
+        st.plotly_chart(create_gauge(vibration, "الاهتزاز (mm/s)",   100, "red" if vibration > 4.5 else ("orange" if vibration > 3.0 else "green")), use_container_width=True)
+    with col_g3:
+        st.plotly_chart(create_gauge(turbidity, "التعكر (NTU)",       100, "red" if turbidity > 2.5 else "purple"),                                   use_container_width=True)
 
     try:
         dec_res = requests.post(f"{API_BASE_URL}/decision-engine", json=payload, headers=HEADERS)
-        rul_res = requests.post(f"{API_BASE_URL}/predict-rul", json=payload, headers=HEADERS)
+        rul_res = requests.post(f"{API_BASE_URL}/predict-rul",     json=payload, headers=HEADERS)
         if dec_res.status_code == 200 and rul_res.status_code == 200:
             dec_data = dec_res.json()
             d1, d2, d3, d4 = st.columns(4)
-            d1.metric("مستوى الخطورة (Risk Score)", f"{dec_data.get('risk_score')}/100", dec_data.get('severity'))
-            d2.metric("معامل الثقة (Confidence)", f"{dec_data.get('confidence_score')}%")
-            d3.metric("العمر المتبقي للأغشية", f"{rul_res.json().get('estimated_remaining_days')} يوم")
-            d4.metric("صحة الأغشية", rul_res.json().get('membrane_health_status'))
-            
+            d1.metric("مستوى الخطورة (Risk Score)",    f"{dec_data.get('risk_score')}/100",                    dec_data.get('severity'))
+            d2.metric("معامل الثقة (Confidence)",      f"{dec_data.get('confidence_score')}%")
+            d3.metric("العمر المتبقي للأغشية",         f"{rul_res.json().get('estimated_remaining_days')} يوم")
+            d4.metric("صحة الأغشية",                   rul_res.json().get('membrane_health_status'))
             st.info(f"🧠 **التشخيص التلقائي (Decision Engine):** {dec_data.get('diagnosis')}\n\n📌 **التوصية الهندسية:** {dec_data.get('recommendation')}")
-            
             render_digital_twin_map(dec_data.get('severity'), pressure)
     except Exception as e:
         st.error(f"خطأ في الاتصال بمحرك القرار: {e}")
@@ -282,12 +291,14 @@ with tab1:
         if logs_res.status_code == 200:
             logs = logs_res.json().get("recent_logs", [])
             if logs:
-                df_hist = pd.DataFrame(logs, columns=["ID", "Timestamp", "Pressure", "Turbidity", "Vibration", "Anomaly", "Status", "Action"])
-                fig_tl = px.line(df_hist, x="Timestamp", y=["Pressure", "Vibration"], title="تغير الضغط والاهتزاز تاريخياً", markers=True)
+                df_hist = pd.DataFrame(logs, columns=["ID","Timestamp","Pressure","Turbidity","Vibration","Anomaly","Status","Action"])
+                fig_tl = px.line(df_hist, x="Timestamp", y=["Pressure","Vibration"],
+                                 title="تغير الضغط والاهتزاز تاريخياً", markers=True)
                 st.plotly_chart(fig_tl, use_container_width=True)
     except Exception as e:
         st.warning(f"تعذر جلب الرسم البياني: {e}")
 
+# ── Tab 2: Efficiency ─────────────────────────────────
 with tab2:
     st.subheader("تحليل الكفاءة، النموذج الفيزيائي، ونظام النبض ذاتي التعافي للأغشية")
     c1, c2 = st.columns(2)
@@ -298,10 +309,10 @@ with tab2:
             if res.status_code == 200:
                 data = res.json()
                 st.metric("استهلاك الطاقة (kWh/m3)", data.get('specific_energy_consumption_kwh_m3'))
-                st.metric("حالة الكفاءة", data.get('efficiency_status'))
+                st.metric("حالة الكفاءة",             data.get('efficiency_status'))
         except Exception as e:
             st.error(f"خطأ: {e}")
-            
+
     with c2:
         st.markdown("### 🔬 نموذج المحاكاة الفيزيائية (Physics-Informed RO Model)")
         try:
@@ -309,10 +320,10 @@ with tab2:
             if res.status_code == 200:
                 preds = res.json().get("predictions", {})
                 p1, p2, p3, p4 = st.columns(4)
-                p1.metric("ملوحة النواتج", f"{preds.get('permeate_tds_mgL')} mg/L")
-                p2.metric("نسبة الاسترداد", f"{preds.get('recovery_pct')}%")
+                p1.metric("ملوحة النواتج",    f"{preds.get('permeate_tds_mgL')} mg/L")
+                p2.metric("نسبة الاسترداد",   f"{preds.get('recovery_pct')}%")
                 p3.metric("معدل رفض الأملاح", f"{preds.get('salt_rejection_pct')}%")
-                p4.metric("الطاقة النوعية", f"{preds.get('sec_kwh_m3')} kWh/m3")
+                p4.metric("الطاقة النوعية",   f"{preds.get('sec_kwh_m3')} kWh/m3")
         except Exception as e:
             st.error(f"خطأ: {e}")
 
@@ -338,67 +349,79 @@ with tab2:
         res = requests.post(f"{API_BASE_URL}/forecast", json=payload, headers=HEADERS)
         if res.status_code == 200:
             df_f = pd.DataFrame(res.json().get("forecast", []))
-            fig_f = px.line(df_f, x="month", y=["predicted_tds", "predicted_sec"], title="التنبؤ بمستويات الملوحة والطاقة", markers=True)
+            fig_f = px.line(df_f, x="month", y=["predicted_tds","predicted_sec"],
+                            title="التنبؤ بمستويات الملوحة والطاقة", markers=True)
             st.plotly_chart(fig_f, use_container_width=True)
     except Exception as e:
         st.warning(f"تعذر جلب التنبؤات: {e}")
 
+# ── Tab 3: AI Core ────────────────────────────────────
 with tab3:
-    st.subheader("🛡️ درع الحماية البيولوجية لمياه السحب (Marine Intake Biological Risk)")
-    st.metric("مستوى التهديد البيولوجي المحاكى", "منخفض / آمن" if turbidity < 3.0 else "مرتفع - خطر طحالب محتمل")
-    st.info("📌 يعتمد هذا النموذج على تحليل مؤشرات التعكر والحرارة لاستباق أي تغيرات في مياه البحر الأحمر.")
+    st.subheader("🤖 مركز الذكاء الاصطناعي الموحد (AI Core & Autonomous Decision Engine)")
+    st.markdown("يحتوي هذا المركز على كافة نماذج الذكاء الاصطناعي لتحليل المخاطر، تتبع الطحالب، وتحسين أسعار الطاقة أتمتياً.")
 
     st.markdown("---")
-    st.subheader("🎫 جدول تذاكر الصيانة التنبؤية (AI Auto-Tickets)")
+    st.markdown("### 🧠 1. محرك التشخيص الذكي ودرجة الثقة (Explainable AI Decision Engine)")
+    try:
+        dec_res = requests.post(f"{API_BASE_URL}/decision-engine", json=payload, headers=HEADERS)
+        if dec_res.status_code == 200:
+            d = dec_res.json()
+            ad1, ad2 = st.columns(2)
+            ad1.metric("تقييم المخاطر الكلي (Risk Score)",        f"{d.get('risk_score')} / 100", d.get('severity'))
+            ad2.metric("معامل الثقة في القرار (Confidence)",       f"{d.get('confidence_score')}%")
+            st.markdown(f"- **التشخيص الهندسي:** {d.get('diagnosis')}")
+            st.markdown(f"- **التوصية التلقائية:** {d.get('recommendation')}")
+    except Exception as e:
+        st.error(f"خطأ في الاتصال بمحرك القرار: {e}")
+
+    st.markdown("---")
+    st.subheader("🔬 2. وحدة الذكاء الاصطناعي لتتبع التلوث وانتشار الطحالب (AI Plume & Dosing Engine)")
+    try:
+        ai_res = requests.post(f"{API_BASE_URL}/advanced-ai-plume-analysis", json=ai_plume_payload, headers=HEADERS)
+        if ai_res.status_code == 200:
+            ai_data = ai_res.json()
+            ap1, ap2, ap3 = st.columns(3)
+            ap1.metric("مؤشر انتشار البقعة (Plume Index)",         ai_data.get("plume_spread_index"))
+            ap2.metric("جرعة المعالجة المقترحة (mg/L)",            ai_data.get("recommended_chemical_dosing_mgl"))
+            ap3.metric("حالة الخطر البيئي",                        ai_data.get("environmental_risk_status"))
+            st.success(f"🤖 **نموذج الذكاء الاصطناعي:** `{ai_data.get('model_type')}` - تم حساب الجرعة كيمياً أتمتياً بنجاح.")
+    except Exception as e:
+        st.error(f"خطأ في نموذج الطحالب: {e}")
+
+    st.markdown("---")
+    st.subheader("⚡ 3. محرك التحسين الاقتصادي للطاقة والمياه (Energy-Water Market Optimizer)")
+    try:
+        en_res = requests.post(f"{API_BASE_URL}/energy-market-optimizer", headers=HEADERS)
+        if en_res.status_code == 200:
+            en_data = en_res.json()
+            st.metric("نسبة توفير التكلفة المتوقعة", f"{en_data.get('estimated_energy_cost_reduction_pct')}%")
+            st.info(en_data.get('recommendation'))
+            st.markdown(f"**ساعات التشغيل الثقيل المثلى (الساعات الاقتصادية):** `{en_data.get('optimal_heavy_pumping_hours')}`")
+            fig_prices = px.line(
+                x=list(range(24)), y=en_data.get('hourly_prices'),
+                labels={'x': 'الساعة (Hour)', 'y': 'سعر الكهرباء (EGP/kWh)'},
+                title="منحنى أسعار الكهرباء على مدار 24 ساعة وجدولة التشغيل الذكي",
+                markers=True
+            )
+            st.plotly_chart(fig_prices, use_container_width=True)
+    except Exception as e:
+        st.error(f"خطأ في نموذج أسعار الطاقة: {e}")
+
+# ── Tab 4: Alerts & Cyber ─────────────────────────────
+with tab4:
+    st.subheader("🚨 التنبيهات الميدانية والأمن السيبراني لشبكات الـ SCADA")
+
+    st.markdown("### 🎫 جدول تذاكر الصيانة التنبؤية (AI Auto-Tickets)")
     try:
         res_t = requests.get(f"{API_BASE_URL}/maintenance-tickets", headers=HEADERS)
         if res_t.status_code == 200:
             t = res_t.json().get("tickets", [])
             if t:
-                st.dataframe(pd.DataFrame(t, columns=["Ticket ID", "Timestamp", "Priority", "Description", "Technician", "Status"]), use_container_width=True)
+                st.dataframe(pd.DataFrame(t, columns=["Ticket ID","Timestamp","Priority","Description","Technician","Status"]), use_container_width=True)
             else:
                 st.info("لا توجد تذاكر صيانة آلية حالياً.")
     except Exception as e:
         st.warning(f"تعذر جلب التذاكر: {e}")
-
-    st.markdown("---")
-    st.subheader("📋 السجلات التاريخية التشغيلية للمحطة (Operational Historical Store)")
-    try:
-        logs_res = requests.get(f"{API_BASE_URL}/logs", headers=HEADERS)
-        if logs_res.status_code == 200:
-            logs = logs_res.json().get("recent_logs", [])
-            if logs:
-                df_lake = pd.DataFrame(logs, columns=["ID", "Timestamp", "Pressure", "Turbidity", "Vibration", "Anomaly", "Status", "Action"])
-                st.dataframe(df_lake, use_container_width=True)
-    except Exception as e:
-        st.warning(f"تعذر جلب السجلات: {e}")
-
-    st.markdown("---")
-    st.subheader("📜 تصدير السجلات الشاملة (Dataset Export)")
-    if st.button("📥 تجهيز وتحميل ملف التدريب (CSV)"):
-        res = requests.get(f"{API_BASE_URL}/export-logs-csv", headers=HEADERS)
-        if res.status_code == 200:
-            st.session_state["csv_data"] = res.content
-            st.success("✅ تم تجهيز ملف البيانات للتدريب بنجاح!")
-    if "csv_data" in st.session_state:
-        st.download_button("📥 تنزيل السجلات الآن (CSV)", data=st.session_state["csv_data"], file_name="aqua_station_training_dataset.csv", mime="text/csv")
-
-with tab4:
-    st.subheader("🚀 وحدة الذكاء الاصطناعي ومحرك القرار المركزي (Autonomous AI & Decision Engine)")
-    st.markdown("هذه الوحدة تعرض التحليل الموحد عبر Decision Engine، محاكاة جدار الحماية للـ SCADA، والابتكارات الصناعية.")
-    
-    st.markdown("---")
-    st.markdown("### 🧠 تقرير التشخيص الذكي ودرجة الثقة (Explainable AI)")
-    try:
-        dec_res = requests.post(f"{API_BASE_URL}/decision-engine", json=payload, headers=HEADERS)
-        if dec_res.status_code == 200:
-            d = dec_res.json()
-            st.metric("تقييم المخاطر الكلي (Risk Score)", f"{d.get('risk_score')} / 100", d.get('severity'))
-            st.markdown(f"- **التشخيص الهندسي:** {d.get('diagnosis')}")
-            st.markdown(f"- **التوصية التلقائية:** {d.get('recommendation')}")
-            st.markdown(f"- **نسبة الثقة في القرار (Confidence):** `{d.get('confidence_score')}%`")
-    except Exception as e:
-        st.error(f"خطأ في الاتصال بمحرك القرار: {e}")
 
     st.markdown("---")
     st.markdown("### 🔒 نظام الأمن السيبراني المحاكى لشبكات الـ SCADA (SCADA Cyber Anomaly Simulation)")
@@ -413,7 +436,7 @@ with tab4:
                     st.error(f"🚨 {cd.get('message')} (المصدر: 192.168.1.99)")
             except Exception as e:
                 st.error(f"خطأ: {e}")
-                
+
     with col_cy2:
         if st.button("🟢 محاكاة حركة مرور آمنة (Trusted PLC Traffic)"):
             try:
@@ -431,8 +454,38 @@ with tab4:
         if res_log.status_code == 200:
             clogs = res_log.json().get("cyber_logs", [])
             if clogs:
-                st.dataframe(pd.DataFrame(clogs, columns=["ID", "Timestamp", "Source IP", "Attack Type", "Action Taken", "Block Status"]), use_container_width=True)
+                st.dataframe(pd.DataFrame(clogs, columns=["ID","Timestamp","Source IP","Attack Type","Action Taken","Block Status"]), use_container_width=True)
             else:
                 st.info("لا توجد سجلات أمنية مسجلة حتى الآن.")
     except Exception as e:
         st.warning(f"تعذر جلب السجلات: {e}")
+
+# ── Tab 5: Reports & Data ─────────────────────────────
+with tab5:
+    st.subheader("📜 التقارير التشغيلية والسجلات التاريخية الشاملة (Dataset & Logs Export)")
+
+    st.markdown("### 📋 السجلات التاريخية التشغيلية للمحطة (Operational Historical Store)")
+    try:
+        logs_res = requests.get(f"{API_BASE_URL}/logs", headers=HEADERS)
+        if logs_res.status_code == 200:
+            logs = logs_res.json().get("recent_logs", [])
+            if logs:
+                df_lake = pd.DataFrame(logs, columns=["ID","Timestamp","Pressure","Turbidity","Vibration","Anomaly","Status","Action"])
+                st.dataframe(df_lake, use_container_width=True)
+    except Exception as e:
+        st.warning(f"تعذر جلب السجلات: {e}")
+
+    st.markdown("---")
+    st.subheader("📜 تصدير السجلات الشاملة لتدريب النماذج (Dataset Export)")
+    if st.button("📥 تجهيز وتحميل ملف التدريب (CSV)"):
+        res = requests.get(f"{API_BASE_URL}/export-logs-csv", headers=HEADERS)
+        if res.status_code == 200:
+            st.session_state["csv_data"] = res.content
+            st.success("✅ تم تجهيز ملف البيانات للتدريب بنجاح!")
+    if "csv_data" in st.session_state:
+        st.download_button(
+            "📥 تنزيل السجلات الآن (CSV)",
+            data=st.session_state["csv_data"],
+            file_name="aqua_station_training_dataset.csv",
+            mime="text/csv"
+        )

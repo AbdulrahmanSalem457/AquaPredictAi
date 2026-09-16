@@ -3,6 +3,8 @@
 # النسخة النهائية المحدثة: منع تكرار التذاكر والسجلات، رسالة تليجرام ثنائية اللغة (عربي/إنجليزي)
 # =====================================================================
 
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, HTTPException, status, Security
 from fastapi.responses import StreamingResponse
 from fastapi.security import APIKeyHeader
@@ -15,11 +17,22 @@ import sqlite3
 from datetime import datetime, timedelta
 import io
 import os
+import threading
 
 app = FastAPI(
     title="AquaPredict Industrial Enterprise API",
     description="النظام الذكي المتكامل للتوأم الرقمي لمحطات التحلية",
     version="23.0"
+)
+
+
+# CORS - Allow HTML frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 SECRET_API_KEY = os.getenv("AQUA_API_KEY", "AQUA_SECURE_KEY_2026")
@@ -54,13 +67,58 @@ def send_unique_telegram_alert(message: str, severity: str):
             print(f"⚠️ فشل إرسال تليجرام: {e}")
     return False
 
-conn = sqlite3.connect('station_database.db', check_same_thread=False)
-cursor = conn.cursor()
+class _ThreadSafeDB:
+    """
+    Thread-local SQLite wrapper.
+    Each thread gets its own connection + cursor, preventing
+    concurrent access errors (ProgrammingError, OperationalError).
+    """
+    _SQL_EMERGENCY  = 'CREATE TABLE IF NOT EXISTS emergency_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, pressure REAL, turbidity REAL, vibration REAL, anomaly_detected BOOLEAN, station_status TEXT, automated_action TEXT)'
+    _SQL_TICKETS    = 'CREATE TABLE IF NOT EXISTS maintenance_tickets (ticket_id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, priority_level TEXT, issue_description TEXT, assigned_technician TEXT, status TEXT)'
+    _SQL_CYBER      = 'CREATE TABLE IF NOT EXISTS cybersecurity_logs (cyber_id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, source_ip TEXT, attack_type TEXT, action_taken TEXT, block_status TEXT)'
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS emergency_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, pressure REAL, turbidity REAL, vibration REAL, anomaly_detected BOOLEAN, station_status TEXT, automated_action TEXT)''')
-cursor.execute('''CREATE TABLE IF NOT EXISTS maintenance_tickets (ticket_id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, priority_level TEXT, issue_description TEXT, assigned_technician TEXT, status TEXT)''')
-cursor.execute('''CREATE TABLE IF NOT EXISTS cybersecurity_logs (cyber_id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, source_ip TEXT, attack_type TEXT, action_taken TEXT, block_status TEXT)''')
-conn.commit()
+    def __init__(self, path='station_database.db'):
+        self._path = path
+        self._local = threading.local()
+
+    def _get_conn(self):
+        if not hasattr(self._local, 'conn') or self._local.conn is None:
+            self._local.conn = sqlite3.connect(
+                self._path, check_same_thread=False, timeout=30
+            )
+            self._local.conn.execute('PRAGMA journal_mode=WAL')
+            _c = self._local.conn.cursor()
+            _c.execute(self._SQL_EMERGENCY)
+            _c.execute(self._SQL_TICKETS)
+            _c.execute(self._SQL_CYBER)
+            self._local.conn.commit()
+        return self._local.conn
+
+    def cursor(self):
+        self._local.cur = self._get_conn().cursor()
+        return self._local.cur
+
+    def execute(self, sql, params=()):
+        self._local.cur = self._get_conn().cursor()
+        self._local.cur.execute(sql, params)
+        return self._local.cur
+
+    def fetchall(self):
+        return self._local.cur.fetchall()
+
+    def fetchone(self):
+        return self._local.cur.fetchone()
+
+    def commit(self):
+        self._get_conn().commit()
+
+    def real_conn(self):
+        """Return raw connection (e.g. for pandas read_sql_query)."""
+        return self._get_conn()
+
+
+conn   = _ThreadSafeDB('station_database.db')
+cursor = conn  # cursor.execute / cursor.fetchall now thread-safe
 
 class StationSensors(BaseModel):
     Pressure: float = Field(..., ge=0.0, le=250.0)
@@ -218,7 +276,9 @@ def run_decision_engine(sensors: StationSensors, api_key: str = Depends(get_api_
         "risk_score": risk_score,
         "severity": severity,
         "diagnosis": diagnosis_ar,
+        "diagnosis_en": diagnosis_en,
         "recommendation": recommendation_ar,
+        "recommendation_en": recommendation_en,
         "confidence_score": confidence,
         "ai_probabilities": {"fouling_pct": round(fouling_prob, 1), "pump_risk_pct": round(pump_prob, 1)}
     }
@@ -256,15 +316,16 @@ def predict_desalination_performance(data: DesalinationInput, api_key: str = Dep
 
 @app.post("/api/v1/forecast")
 def forecast_future_performance(sensors: StationSensors, api_key: str = Depends(get_api_key)):
-    forecast_data = [{"month": f"الشهر {m}", "predicted_tds": round(350.0 + (m * 12.5), 2), "predicted_sec": round(3.1 + (m * 0.08), 2)} for m in range(1, 7)]
+    forecast_data = [{"month_ar": f"الشهر {m}", "month": f"Month {m}", "predicted_tds": round(350.0 + (m * 12.5), 2), "predicted_sec": round(3.1 + (m * 0.08), 2)} for m in range(1, 7)]
     return {"success": True, "forecast": forecast_data}
 
 @app.post("/api/v1/self-healing-pulse")
 def trigger_self_healing_pulse(sensors: StationSensors, api_key: str = Depends(get_api_key)):
     fouling_index = (sensors.Pressure * 0.45) + (sensors.Turbidity * 16.0)
     pulse_action = "SIMULATE_MICRO_PULSE" if fouling_index > 65.0 else "NORMAL_OPERATION"
-    status_msg = "⚠️ محاكاة تكيفية: رصد الترسبات - إطلاق ملف نبضات ضغط محاكاة لتفتيت الرواسب." if fouling_index > 65.0 else "🟢 حالة الأغشية مستقرة."
-    return {"success": True, "calculated_fouling_index": round(fouling_index, 2), "action_executed": pulse_action, "message": status_msg}
+    status_msg_ar = "⚠️ محاكاة تكيفية: رصد الترسبات - إطلاق ملف نبضات ضغط محاكاة لتفتيت الرواسب." if fouling_index > 65.0 else "🟢 حالة الأغشية مستقرة."
+    status_msg_en = "⚠️ Adaptive Simulation: Fouling detected - micro-pulse sequence initiated to break down deposits." if fouling_index > 65.0 else "🟢 Membrane status stable - system operating normally."
+    return {"success": True, "calculated_fouling_index": round(fouling_index, 2), "action_executed": pulse_action, "message": status_msg_ar, "message_en": status_msg_en}
 
 @app.post("/api/v1/energy-water-trading")
 def energy_water_trading_broker(broker: EnergyBrokerInput, api_key: str = Depends(get_api_key)):
@@ -305,9 +366,213 @@ def get_cybersecurity_logs(api_key: str = Depends(get_api_key)):
 
 @app.get("/api/v1/export-logs-csv")
 def export_all_logs_csv(api_key: str = Depends(get_api_key)):
-    df_logs = pd.read_sql_query("SELECT * FROM emergency_logs", conn)
+    df_logs = pd.read_sql_query("SELECT * FROM emergency_logs", conn.real_conn())
     stream = io.StringIO()
     df_logs.to_csv(stream, index=False)
     response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=aqua_station_training_dataset.csv"
     return response
+
+# =====================================================================
+# Endpoint: Advanced AI Plume & Dosing Engine
+# تحليل انتشار الطحالب والتلوث البحري وحساب جرعة المعالجة الكيميائية
+# =====================================================================
+
+class PlumeInput(BaseModel):
+    Turbidity: float = Field(..., ge=0.0, le=100.0)
+    Temperature: float = Field(..., ge=0.0, le=100.0)
+    Salinity: float = Field(..., ge=0.0, le=100000.0)
+
+@app.post("/api/v1/advanced-ai-plume-analysis")
+def advanced_ai_plume_analysis(data: PlumeInput, api_key: str = Depends(get_api_key)):
+    """
+    نموذج ذكاء اصطناعي لتحليل انتشار الطحالب والتلوث في مياه السحب البحري
+    ويحسب الجرعة الكيميائية المقترحة تلقائياً.
+    """
+    # حساب مؤشر انتشار البقعة (Plume Spread Index)
+    plume_index = round(
+        (data.Turbidity * 2.5) + (data.Temperature * 0.8) + (data.Salinity / 10000.0 * 1.2),
+        2
+    )
+
+    # حساب جرعة المعالجة الكيميائية (Chlorine dosing mg/L)
+    if data.Turbidity > 4.0 or data.Temperature > 30.0:
+        dosing_mgl = round(1.5 + (data.Turbidity * 0.3) + (data.Temperature * 0.05), 2)
+        risk_status = "HIGH_BIOLOGICAL_RISK"
+    elif data.Turbidity > 2.0:
+        dosing_mgl = round(0.8 + (data.Turbidity * 0.2), 2)
+        risk_status = "MODERATE_RISK"
+    else:
+        dosing_mgl = round(0.5 + (data.Turbidity * 0.1), 2)
+        risk_status = "LOW_RISK"
+
+    return {
+        "success": True,
+        "plume_spread_index": plume_index,
+        "recommended_chemical_dosing_mgl": dosing_mgl,
+        "environmental_risk_status": risk_status,
+        "model_type": "AquaPredict-Plume-AI-v2 (Physics-ML Hybrid)",
+        "analysis_notes": (
+            "مؤشر مرتفع - يُنصح بزيادة جرعة الكلور وتفعيل فلاتر ما قبل المعالجة"
+            if risk_status == "HIGH_BIOLOGICAL_RISK"
+            else "مستوى مقبول - استمر بالرصد الدوري"
+        ),
+        "analysis_notes_en": (
+            "High index - increase chlorine dosing and activate pre-treatment filters."
+            if risk_status == "HIGH_BIOLOGICAL_RISK"
+            else ("Moderate level - continue periodic plume monitoring." if risk_status == "MODERATE_RISK" else "Low risk level - maintain standard monitoring schedule.")
+        )
+    }
+
+
+# =====================================================================
+# Endpoint: Energy-Water Market Optimizer
+# محسّن أسعار الطاقة والجدولة الذكية لتشغيل المضخات
+# =====================================================================
+
+@app.post("/api/v1/energy-market-optimizer")
+def energy_market_optimizer(api_key: str = Depends(get_api_key)):
+    """
+    يحلل أسعار الكهرباء على مدار 24 ساعة ويحدد أفضل أوقات تشغيل المضخات
+    لتوفير الطاقة وخفض التكاليف التشغيلية.
+    """
+    import math
+
+    # توليد منحنى أسعار الكهرباء المحاكى (EGP/kWh) على مدار 24 ساعة
+    hourly_prices = []
+    for h in range(24):
+        # ذروة صباحية (7-10 صباحاً) وذروة مسائية (6-10 مساءً)
+        if 7 <= h <= 10:
+            price = round(5.5 + math.sin((h - 7) * 0.8) * 1.5, 2)
+        elif 18 <= h <= 22:
+            price = round(6.5 + math.sin((h - 18) * 0.6) * 2.0, 2)
+        elif 0 <= h <= 5:
+            price = round(2.5 + math.sin(h * 0.3) * 0.5, 2)   # فترة ليلية رخيصة
+        else:
+            price = round(4.0 + math.sin(h * 0.2) * 0.8, 2)
+
+        hourly_prices.append(price)
+
+    avg_price = round(sum(hourly_prices) / 24, 2)
+    min_price = min(hourly_prices)
+
+    # تحديد الساعات الاقتصادية المثلى (أقل من 3.5 EGP/kWh)
+    optimal_hours = [h for h, p in enumerate(hourly_prices) if p <= 3.5]
+
+    # حساب نسبة التوفير المتوقعة
+    cost_reduction_pct = round(((avg_price - min_price) / avg_price) * 100, 1)
+
+    return {
+        "success": True,
+        "hourly_prices": hourly_prices,
+        "average_price_egp_kwh": avg_price,
+        "min_price_egp_kwh": min_price,
+        "optimal_heavy_pumping_hours": optimal_hours if optimal_hours else [1, 2, 3],
+        "estimated_energy_cost_reduction_pct": cost_reduction_pct,
+        "recommendation": (
+            f"شغّل المضخات الثقيلة في الساعات {optimal_hours[:3]} "
+            "للاستفادة من أقل أسعار الكهرباء وتوفير تكاليف التشغيل."
+            if optimal_hours
+            else "أسعار الكهرباء مستقرة - استمر بالجدول الطبيعي."
+        ),
+        "recommendation_en": (
+            f"Run heavy pumps during hours {optimal_hours[:3]} to benefit from lowest electricity prices and reduce OPEX."
+            if optimal_hours
+            else "Electricity prices are stable - continue normal operating schedule."
+        ),
+        "model_type": "AquaPredict-Energy-Optimizer-v1"
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Frontend Auth Endpoints
+# ──────────────────────────────────────────────────────────────────────
+
+class LoginInput(BaseModel):
+    username: str
+    password: str
+
+@app.post("/api/v1/login")
+def user_login(data: LoginInput):
+    import hashlib as _hl
+    hashed = _hl.sha256(data.password.encode()).hexdigest()
+    adb = sqlite3.connect("auth.db", check_same_thread=False)
+    ac = adb.cursor()
+    ac.execute("CREATE TABLE IF NOT EXISTS users (username TEXT UNIQUE, password_hash TEXT)")
+    dh = _hl.sha256("12345".encode()).hexdigest()
+    try:
+        ac.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", ("admin", dh))
+        adb.commit()
+    except Exception:
+        pass
+    ac.execute("SELECT * FROM users WHERE username=? AND password_hash=?", (data.username, hashed))
+    user = ac.fetchone()
+    adb.close()
+    if user:
+        return {"success": True, "username": data.username}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+class ChangePasswordInput(BaseModel):
+    username: str
+    new_password: str
+
+@app.post("/api/v1/change-password")
+def change_password(data: ChangePasswordInput, api_key: str = Depends(get_api_key)):
+    import hashlib as _hl
+    hashed = _hl.sha256(data.new_password.encode()).hexdigest()
+    adb = sqlite3.connect("auth.db", check_same_thread=False)
+    ac = adb.cursor()
+    ac.execute("UPDATE users SET password_hash=? WHERE username=?", (hashed, data.username))
+    adb.commit()
+    adb.close()
+    return {"success": True, "message": "Password updated successfully"}
+
+
+@app.post("/api/v1/generate-pdf-report")
+def generate_pdf_report_frontend(sensors: StationSensors, power_kw: float = 45.0, api_key: str = Depends(get_api_key)):
+    try:
+        from fpdf import FPDF as _FPDF
+        import io as _io
+        pdf = _FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=16, style="B")
+        pdf.cell(200, 10, txt="AquaPredict Industrial Station Report", ln=True, align="C")
+        pdf.set_font("Arial", size=11)
+        pdf.cell(200, 10, txt=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+        pdf.ln(8)
+        pdf.set_font("Arial", size=12, style="B")
+        pdf.cell(200, 10, txt="--- Sensor Readings ---", ln=True)
+        pdf.set_font("Arial", size=12)
+        rows = [
+            f"Pressure:    {sensors.Pressure} Bar",
+            f"Salinity:    {sensors.Salinity} PPM",
+            f"Temperature: {sensors.Temperature} C",
+            f"Flow Rate:   {sensors.Flow_Rate} m3/h",
+            f"Turbidity:   {sensors.Turbidity} NTU",
+            f"Vibration:   {sensors.Vibration} mm/s",
+            f"Power:       {power_kw} kW",
+        ]
+        for row in rows:
+            pdf.cell(200, 10, txt=row, ln=True)
+        raw = pdf.output(dest="S")
+        b = raw.encode("latin-1") if isinstance(raw, str) else bytes(raw)
+        buf = _io.BytesIO(b)
+        buf.seek(0)
+        resp = StreamingResponse(buf, media_type="application/pdf")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        resp.headers["Content-Disposition"] = f"attachment; filename=AquaPredict_Report_{ts}.pdf"
+        return resp
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Mount Frontend Static Files at /app
+# ──────────────────────────────────────────────────────────────────────
+_fe_dir = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "frontend"
+)
+if os.path.exists(_fe_dir):
+    app.mount("/app", StaticFiles(directory=_fe_dir, html=True), name="frontend")

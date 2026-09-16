@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AquaPredict Industrial Twin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<link rel="stylesheet" href="style.css?v=20260916224859">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+
+<!-- ═ ═ ═  LOGIN SCREEN ═ ═ ═  -->
+<div id="loginScreen" class="ls">
+  <div class="lbg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+  <div class="gc lc">
+    <div class="logo-icon">💧</div>
+    <h1 class="logo-t" data-i18n="appName">AquaPredict</h1>
+    <span class="logo-s" data-i18n="sub">Industrial Water Intelligence Platform</span>
+    <div class="fg"><label data-i18n="usr">Username</label><input id="un" class="gi" type="text" placeholder="admin" autocomplete="username"></div>
+    <div class="fg"><label data-i18n="pw">Password</label><input id="pw" class="gi" type="password" placeholder="••••••" autocomplete="current-password"></div>
+    <div id="lerr" class="lerr hid"></div>
+    <button id="lbtn" class="btn bp bw" onclick="doLogin()"><span data-i18n="lbtn">Login</span> <span>→</span></button>
+    <div class="ll">
+      <button class="lbs" onclick="toggleLang()" id="langBtnL">English</button>
+      <button class="tbs" onclick="toggleTheme()" id="themeBtnL">🌙</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN DASHBOARD ═══ -->
+<div id="dash" class="dash hid">
+
+  <!-- Header -->
+  <header class="gc hdr">
+    <div class="hl">
+      <button class="ib" onclick="toggleSidebar()">☰</button>
+      <div class="hlogo">
+        <span class="ldrop">💧</span>
+        <div><h2 class="ht" data-i18n="appName">AquaPredict</h2><span class="hsub" data-i18n="ent">Enterprise Edition</span></div>
+      </div>
+    </div>
+    <div class="sb">
+      <span class="sdot online"></span>
+      <span data-i18n="online">System Online</span>
+      <span class="stm" id="clk"></span>
+    </div>
+    <div class="hr">
+      <button class="gb" onclick="toggleLang()" id="langBtn">EN</button>
+      <button class="gb" onclick="toggleTheme()" id="themeBtn">🌙</button>
+      <div class="ua" onclick="toggleUM()"><span id="uInitial">A</span></div>
+      <div id="uMenu" class="gc um hid">
+        <div class="umh"><span data-i18n="welcome">Welcome</span> <strong id="uName">admin</strong></div>
+        <hr>
+        <button class="umi" onclick="showChPw()" data-i18n="chpw">Change Password</button>
+        <button class="umi dng" onclick="doLogout()" data-i18n="logout">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="lay">
+
+    <!-- Sidebar -->
+    <aside id="sdb" class="gc sdb">
+
+      <div class="ss">
+        <div class="st" data-i18n="scen">Scenario Engine</div>
+        <select id="scenSel" class="gs" onchange="applyScenario()">
+          <option value="normal" data-i18n="sN">Normal Operation</option>
+          <option value="fouling" data-i18n="sF">Membrane Fouling</option>
+          <option value="cav" data-i18n="sC">Pump Cavitation</option>
+          <option value="algae" data-i18n="sA">Algal Bloom Risk</option>
+          <option value="cyber" data-i18n="sCy">Cyber Attack</option>
+        </select>
+      </div>
+
+      <div class="ss">
+        <div class="st" data-i18n="sens">Sensor Controls</div>
+        <div class="slg"><label><span data-i18n="pr">Pressure</span><span class="sv" id="pressureV">65</span> bar</label><input id="pressure" class="gsl" type="range" min="0" max="250" value="65" step="1" oninput="updSlider('pressure')"></div>
+        <div class="slg"><label><span data-i18n="sal">Salinity</span><span class="sv" id="salinityV">35000</span> PPM</label><input id="salinity" class="gsl" type="range" min="0" max="100000" value="35000" step="100" oninput="updSlider('salinity')"></div>
+        <div class="slg"><label><span data-i18n="tmp">Temperature</span><span class="sv" id="temperatureV">25</span> Â°C</label><input id="temperature" class="gsl" type="range" min="0" max="100" value="25" step="1" oninput="updSlider('temperature')"></div>
+        <div class="slg"><label><span data-i18n="fl">Flow Rate</span><span class="sv" id="flowRateV">100</span> mÂ³/h</label><input id="flowRate" class="gsl" type="range" min="0" max="500" value="100" step="1" oninput="updSlider('flowRate')"></div>
+        <div class="slg"><label><span data-i18n="ph">pH</span><span class="sv" id="phV">7.5</span></label><input id="ph" class="gsl" type="range" min="0" max="14" value="7.5" step="0.1" oninput="updSlider('ph')"></div>
+        <div class="slg"><label><span data-i18n="tb">Turbidity</span><span class="sv" id="turbidityV">1.2</span> NTU</label><input id="turbidity" class="gsl" type="range" min="0" max="100" value="1.2" step="0.1" oninput="updSlider('turbidity')"></div>
+        <div class="slg"><label><span data-i18n="vb">Vibration</span><span class="sv" id="vibrationV">1.8</span> mm/s</label><input id="vibration" class="gsl" type="range" min="0" max="100" value="1.8" step="0.1" oninput="updSlider('vibration')"></div>
+        <div class="slg"><label><span data-i18n="pw2">Power</span><span class="sv" id="powerV">45</span> kW</label><input id="power" class="gsl" type="range" min="10" max="200" value="45" step="1" oninput="updSlider('power')"></div>
+      </div>
+
+      <div class="ss">
+        <div class="st" data-i18n="adv">Advanced Parameters</div>
+        <div class="slg"><label><span data-i18n="ma">Membrane Age</span><span class="sv" id="memAgeV">6</span> mo</label><input id="memAge" class="gsl" type="range" min="0" max="36" value="6" step="1" oninput="updSlider('memAge')"></div>
+      </div>
+
+      <div class="ss">
+        <button id="rptBtn" class="btn bs bw" onclick="doReport()">ðŸ“Š <span data-i18n="genRpt">Generate Report</span></button>
+        <div id="rptSt" class="hid"></div>
+      </div>
+
+      <div class="ss">
+        <div class="rfrow">
+          <span data-i18n="autoR">Auto Refresh</span>
+          <label class="ts"><input id="autoRefToggle" type="checkbox" checked onchange="toggleRef()"><span class="tsl"></span></label>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Main Content -->
+    <main class="mc">
+
+      <!-- Tabs -->
+      <div class="gc tabs">
+        <button class="tbb act" onclick="showTab('scada',this)" data-i18n="t1">SCADA Control</button>
+        <button class="tbb" onclick="showTab('efficiency',this)" data-i18n="t2">Efficiency</button>
+        <button class="tbb" onclick="showTab('aicore',this)" data-i18n="t3">AI Core</button>
+        <button class="tbb" onclick="showTab('cyber',this)" data-i18n="t4">Cyber</button>
+        <button class="tbb" onclick="showTab('reports',this)" data-i18n="t5">Reports</button>
+      </div>
+
+      <!-- Tab 1: SCADA -->
+      <div id="tc-scada" class="tc act">
+        <div class="gr">
+          <div class="gc gau"><canvas id="gPressure" height="180"></canvas><p class="gaul" data-i18n="pressure">Pressure (bar)</p></div>
+          <div class="gc gau"><canvas id="gVibration" height="180"></canvas><p class="gaul" data-i18n="vibration">Vibration (mm/s)</p></div>
+          <div class="gc gau"><canvas id="gTurbidity" height="180"></canvas><p class="gaul" data-i18n="turbidity">Turbidity (NTU)</p></div>
+        </div>
+        <div class="kr" id="kpiRow"></div>
+        <div class="gc dg" id="diagCard"></div>
+        <div class="gc mapw"><h3 style="margin-bottom:12px;font-size:13px" data-i18n="mapT">Digital Twin Map</h3><div id="stMap" style="height:320px;border-radius:14px"></div></div>
+        <div class="cc gc"><h3 data-i18n="hist">Sensor History</h3><canvas id="histChart"></canvas></div>
+      </div>
+
+      <!-- Tab 2: Efficiency -->
+      <div id="tc-efficiency" class="tc">
+        <div class="mc2">
+          <div class="gc"><h3 data-i18n="sec">SEC</h3><div class="mg" id="secM"></div></div>
+          <div class="gc"><h3 data-i18n="ro">RO Model</h3><div class="mg" id="roM"></div></div>
+        </div>
+        <div class="gc cc"><h3 data-i18n="foul">Fouling Mitigation</h3><div id="foulM"></div></div>
+        <div class="cc gc"><h3 data-i18n="fore">6-Month Forecast</h3><canvas id="foreChart"></canvas></div>
+      </div>
+
+      <!-- Tab 3: AI Core -->
+      <div id="tc-aicore" class="tc">
+        <div class="gc cc"><h3 data-i18n="ai1">AI Decision Engine</h3><div id="aiDecM"></div></div>
+        <div class="gc cc"><h3 data-i18n="ai2">Plume & Dosing</h3><div id="plumeM"></div></div>
+        <div class="gc cc"><h3 data-i18n="ai3">Energy Optimizer</h3><div id="enM" style="margin-bottom:14px"></div><canvas id="energyChart"></canvas></div>
+      </div>
+
+      <!-- Tab 4: Cyber -->
+      <div id="tc-cyber" class="tc">
+        <div class="gc cc"><h3 data-i18n="tickets">Maintenance Tickets</h3><div id="ticketsTbl"></div></div>
+        <div class="gc cc">
+          <h3 data-i18n="cyberSim">SCADA Cyber Simulation</h3>
+          <div class="cbtns">
+            <button class="btn be" onclick="doAtk()" data-i18n="atk">Simulate Attack</button>
+            <button class="btn bsuc" onclick="doSafe()" data-i18n="safe">Simulate Safe Traffic</button>
+          </div>
+          <div id="cyberRes"></div>
+        </div>
+        <div class="gc cc"><h3 data-i18n="fwLogs">Firewall Logs</h3><div id="fwTbl"></div></div>
+      </div>
+
+      <!-- Tab 5: Reports -->
+      <div id="tc-reports" class="tc">
+        <div class="gc cc"><h3 data-i18n="histLogs">Operational Historical Store</h3><div id="histTbl"></div></div>
+        <div class="gc cc">
+          <h3 data-i18n="exportT">Dataset Export</h3>
+          <button class="btn bp" onclick="doExport()" data-i18n="exportB">Download CSV</button>
+          <div id="expSt" class="hid"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="chPwModal" class="mov hid">
+  <div class="gc mod">
+    <h3 data-i18n="chpw">Change Password</h3>
+    <div class="fg"><label data-i18n="npw">New Password</label><input id="npw" class="gi" type="password"></div>
+    <div class="fg"><label data-i18n="cpw">Confirm Password</label><input id="cpw" class="gi" type="password"></div>
+    <div class="mbts">
+      <button class="btn bp" onclick="submitChPw()" data-i18n="upd">Update</button>
+      <button class="btn bs" onclick="closeModal('chPwModal')" data-i18n="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="app.js?v=20260916230346"></script>
+</body>
+</html>
