@@ -587,3 +587,45 @@ async def print_startup_banner():
     print("  [ALT] Streamlit Dash:  http://127.0.0.1:8501")
     print("  API Swagger UI:        http://127.0.0.1:8000/docs")
     print("="*55 + "\n")
+from fpdf import FPDF
+import os
+import base64
+import datetime
+
+ARCHIVE_DIR = "archived_reports"
+if not os.path.exists(ARCHIVE_DIR):
+    os.makedirs(ARCHIVE_DIR)
+
+@app.post("/api/v1/generate-report")
+def generate_pdf_report_api(sensors: StationSensors, api_key: str = Depends(get_api_key)):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=16, style="B")
+    pdf.cell(200, 10, txt="AquaPredict Industrial Station Simulation Report", ln=True, align="C")
+    pdf.set_font("Arial", size=11)
+    
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    pdf.cell(200, 10, txt=f"Report Generated: {current_time}", ln=True, align="C")
+    pdf.ln(10)
+    pdf.set_font("Arial", size=12, style="B")
+    pdf.cell(200, 10, txt="--- Current Sensor Readings ---", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Pressure: {sensors.Pressure} Bar", ln=True)
+    pdf.cell(200, 10, txt=f"Vibration: {sensors.Vibration} mm/s", ln=True)
+    pdf.cell(200, 10, txt=f"Turbidity: {sensors.Turbidity} NTU", ln=True)
+    pdf.cell(200, 10, txt=f"Flow Rate: {sensors.Flow_Rate} m3/h", ln=True)
+    pdf.cell(200, 10, txt=f"Salinity: {sensors.Salinity} PPM", ln=True)
+    pdf.cell(200, 10, txt=f"Temperature: {sensors.Temperature} C", ln=True)
+    pdf.cell(200, 10, txt=f"pH Level: {sensors.pH_Level}", ln=True)
+    
+    file_name = f"AquaPredict_Report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    file_path = os.path.join(ARCHIVE_DIR, file_name)
+    pdf.output(file_path)
+    
+    # Read the file and return as base64 so JS can download it easily
+    with open(file_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode('utf-8')
+        
+    return {"success": True, "filename": file_name, "pdf_base64": encoded}
+
+

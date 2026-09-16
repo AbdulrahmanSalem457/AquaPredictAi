@@ -692,26 +692,39 @@ async function doExport(){
 
 // ── PDF Report ────────────────────────────────────
 async function doReport(){
-  const btn=document.getElementById('rptBtn');
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
-  const st=document.getElementById('rptSt');
-  try{
-    const p=payload();
-    const pw=parseFloat(document.getElementById('power')?.value||45);
-    const r=await fetch(`${API}/generate-pdf-report?power_kw=${pw}`,{method:'POST',headers:H,body:JSON.stringify(p)});
-    if(r.ok){
-      const b=await r.blob();
-      const u=URL.createObjectURL(b);
-      const a=document.createElement('a');
-      a.href=u;a.download=`AquaPredict_${new Date().toISOString().slice(0,10)}.pdf`;
-      document.body.appendChild(a);a.click();
-      document.body.removeChild(a);URL.revokeObjectURL(u);
-      st.textContent=t('rptok');st.className='rs ok';st.classList.remove('hid');
+  const btn = document.getElementById('rptBtn');
+  btn.disabled = true; 
+  btn.innerHTML = '<span class="spin"></span>';
+  const st = document.getElementById('rptSt');
+  try {
+    const p = payload();
+    const r = await fetch(`${API}/generate-report`, {method:'POST', headers:H, body:JSON.stringify(p)});
+    if (r.ok) {
+      const data = await r.json();
+      if (data.success && data.pdf_base64) {
+        // Download the file
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + data.pdf_base64;
+        link.download = data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show success message
+        st.innerHTML = `<span style="color:#00e676;font-size:12px;">✅ تم حفظ نسخة في مجلد 'archived_reports'<br>وتحميل التقرير بنجاح!</span>`;
+        st.className = 'rs ok';
+        st.classList.remove('hid');
+      }
+    } else {
+      throw new Error("Failed to generate report");
     }
-  }catch(e){
-    st.textContent=t('err');st.className='rs er';st.classList.remove('hid');
-  } finally{
-    btn.disabled=false;btn.innerHTML=`📊 <span data-i18n="genRpt">${t('genRpt')}</span>`;
+  } catch(e) {
+    st.textContent = "❌ حدث خطأ أثناء إنشاء التقرير";
+    st.className = 'rs er';
+    st.classList.remove('hid');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `📄 <span data-i18n="genRpt">${t('genRpt') || 'إنشاء وأرشفة تقرير جديد'}</span>`;
   }
 }
 
