@@ -112,7 +112,7 @@ body{font-family:var(--fara);background:var(--bg);color:var(--txt);min-height:10
 .lay{display:flex;padding-top:var(--hh);min-height:100vh}
 
 /* Sidebar */
-.sdb{width:var(--sw);min-height:calc(100vh - var(--hh));padding:20px 14px;border-radius:0;border-right:1px solid var(--glass-b);border-top:none;overflow-y:auto;position:fixed;top:var(--hh);left:0;transition:transform var(--tr);z-index:50;scrollbar-width:thin;scrollbar-color:var(--glass-b) transparent}
+.sdb{width:var(--sw);height:calc(100vh - var(--hh));bottom:0;padding:20px 14px;border-radius:0;border-right:1px solid var(--glass-b);border-top:none;overflow-y:auto;position:fixed;top:var(--hh);left:0;transition:transform var(--tr);z-index:50;scrollbar-width:thin;scrollbar-color:var(--glass-b) transparent}
 [dir="rtl"] .sdb{left:auto;right:0;border-right:none;border-left:1px solid var(--glass-b)}
 .sdb.col{transform:translateX(-100%)}
 [dir="rtl"] .sdb.col{transform:translateX(100%)}
@@ -121,7 +121,7 @@ body{font-family:var(--fara);background:var(--bg);color:var(--txt);min-height:10
 .slg{margin-bottom:14px}
 .slg label{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--txt2);margin-bottom:5px}
 .sv{font-weight:700;color:var(--acc);font-size:12px}
-.gsl{width:100%;height:6px;border-radius:3px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,var(--acc) 0%,var(--acc) var(--pct,26%),var(--glass-b) var(--pct,26%),var(--glass-b) 100%);cursor:pointer;outline:none;transition:all var(--tr)}
+.gsl{direction:ltr;width:100%;height:6px;border-radius:3px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,var(--acc) 0%,var(--acc) var(--pct,26%),var(--glass-b) var(--pct,26%),var(--glass-b) 100%);cursor:pointer;outline:none;transition:all var(--tr)}
 .gsl::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--acc),#fff);box-shadow:0 0 10px var(--glow);cursor:grab;transition:all .2s}
 .gsl::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.2)}
 

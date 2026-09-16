@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>AquaPredict Industrial Twin</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
-<link rel="stylesheet" href="style.css?v=20260916224859">
+<link rel="stylesheet" href="style.css?v=20260917004209">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
@@ -77,19 +77,19 @@
 
       <div class="ss">
         <div class="st" data-i18n="sens">Sensor Controls</div>
-        <div class="slg"><label><span data-i18n="pr">Pressure</span><span class="sv" id="pressureV">65</span> bar</label><input id="pressure" class="gsl" type="range" min="0" max="250" value="65" step="1" oninput="updSlider('pressure')"></div>
-        <div class="slg"><label><span data-i18n="sal">Salinity</span><span class="sv" id="salinityV">35000</span> PPM</label><input id="salinity" class="gsl" type="range" min="0" max="100000" value="35000" step="100" oninput="updSlider('salinity')"></div>
+        <div class="slg"><label><span data-i18n="pr">Pressure</span><span><span class="sv" id="pressureV">65</span> bar</span></label><input id="pressure" class="gsl" type="range" min="0" max="250" value="65" step="1" oninput="updSlider('pressure')"></div>
+        <div class="slg"><label><span data-i18n="sal">Salinity</span><span><span class="sv" id="salinityV">35000</span> PPM</span></label><input id="salinity" class="gsl" type="range" min="0" max="100000" value="35000" step="100" oninput="updSlider('salinity')"></div>
         <div class="slg"><label><span data-i18n="tmp">Temperature</span><span class="sv" id="temperatureV">25</span> Â°C</label><input id="temperature" class="gsl" type="range" min="0" max="100" value="25" step="1" oninput="updSlider('temperature')"></div>
         <div class="slg"><label><span data-i18n="fl">Flow Rate</span><span class="sv" id="flowRateV">100</span> mÂ³/h</label><input id="flowRate" class="gsl" type="range" min="0" max="500" value="100" step="1" oninput="updSlider('flowRate')"></div>
-        <div class="slg"><label><span data-i18n="ph">pH</span><span class="sv" id="phV">7.5</span></label><input id="ph" class="gsl" type="range" min="0" max="14" value="7.5" step="0.1" oninput="updSlider('ph')"></div>
-        <div class="slg"><label><span data-i18n="tb">Turbidity</span><span class="sv" id="turbidityV">1.2</span> NTU</label><input id="turbidity" class="gsl" type="range" min="0" max="100" value="1.2" step="0.1" oninput="updSlider('turbidity')"></div>
-        <div class="slg"><label><span data-i18n="vb">Vibration</span><span class="sv" id="vibrationV">1.8</span> mm/s</label><input id="vibration" class="gsl" type="range" min="0" max="100" value="1.8" step="0.1" oninput="updSlider('vibration')"></div>
-        <div class="slg"><label><span data-i18n="pw2">Power</span><span class="sv" id="powerV">45</span> kW</label><input id="power" class="gsl" type="range" min="10" max="200" value="45" step="1" oninput="updSlider('power')"></div>
+        <div class="slg"><label><span data-i18n="ph">pH</span><span><span class="sv" id="phV">7.5</span></span></label><input id="ph" class="gsl" type="range" min="0" max="14" value="7.5" step="0.1" oninput="updSlider('ph')"></div>
+        <div class="slg"><label><span data-i18n="tb">Turbidity</span><span><span class="sv" id="turbidityV">1.2</span> NTU</span></label><input id="turbidity" class="gsl" type="range" min="0" max="100" value="1.2" step="0.1" oninput="updSlider('turbidity')"></div>
+        <div class="slg"><label><span data-i18n="vb">Vibration</span><span><span class="sv" id="vibrationV">1.8</span> mm/s</span></label><input id="vibration" class="gsl" type="range" min="0" max="100" value="1.8" step="0.1" oninput="updSlider('vibration')"></div>
+        <div class="slg"><label><span data-i18n="pw2">Power</span><span><span class="sv" id="powerV">45</span> kW</span></label><input id="power" class="gsl" type="range" min="10" max="200" value="45" step="1" oninput="updSlider('power')"></div>
       </div>
 
       <div class="ss">
         <div class="st" data-i18n="adv">Advanced Parameters</div>
-        <div class="slg"><label><span data-i18n="ma">Membrane Age</span><span class="sv" id="memAgeV">6</span> mo</label><input id="memAge" class="gsl" type="range" min="0" max="36" value="6" step="1" oninput="updSlider('memAge')"></div>
+        <div class="slg"><label><span data-i18n="ma">Membrane Age</span><span><span class="sv" id="memAgeV">6</span> mo</span></label><input id="memAge" class="gsl" type="range" min="0" max="36" value="6" step="1" oninput="updSlider('memAge')"></div>
       </div>
 
       <div class="ss">
@@ -191,6 +191,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="app.js?v=20260917000934"></script>
+<script src="app.js?v=20260917010511"></script>
 </body>
 </html>

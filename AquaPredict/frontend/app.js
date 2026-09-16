@@ -76,6 +76,7 @@ const t = k => T[lang][k] || k;
 // ── Lang & Theme ────────────────────────────────
 function toggleLang(){
   lang = lang==='ar'?'en':'ar';
+  localStorage.setItem('aqua_lang', lang);
   const h=document.documentElement;
   h.lang=lang; h.dir=lang==='ar'?'rtl':'ltr';
   const b = document.getElementById('langBtn');
@@ -91,6 +92,7 @@ function toggleLang(){
 }
 function toggleTheme(){
   theme=theme==='dark'?'light':'dark';
+  localStorage.setItem('aqua_theme', theme);
   document.documentElement.setAttribute('data-theme',theme);
   setTimeout(() => loadTab(curTab), 50);
   const icon=theme==='dark'?'🌙':'☀️';
@@ -118,6 +120,7 @@ async function doLogin(){
     if(r.ok){
       const d=await r.json();
       user=d.username;
+      localStorage.setItem("aqua_user", user);
       showDash();
     } else {
       err.textContent=t('lerr');
@@ -132,6 +135,7 @@ async function doLogin(){
   }
 }
 function doLogout(){
+  localStorage.removeItem("aqua_user");
   document.getElementById('dash').classList.add('hid');
   document.getElementById('loginScreen').classList.remove('hid');
   stopRef();
@@ -736,9 +740,30 @@ function refreshAll(){loadTab(curTab);}
 
 // ── Init ──────────────────────────────────────────
 window.addEventListener('load',()=>{
+  const savedUser = localStorage.getItem("aqua_user");
+  if (savedUser) {
+    user = savedUser;
+    showDash();
+  }
+  
+  const savedLang = localStorage.getItem('aqua_lang');
+  if (savedLang) lang = savedLang;
+  
+  const savedTheme = localStorage.getItem('aqua_theme');
+  if (savedTheme) theme = savedTheme;
+
   document.documentElement.setAttribute('data-theme',theme);
   document.documentElement.lang=lang;
-  document.documentElement.dir='rtl';
+  document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  
+  const b = document.getElementById('langBtn');
+  if(b) b.textContent = lang==='ar'?'EN':'عربي';
+  const b2 = document.getElementById('langBtnL');
+  if(b2) b2.textContent = lang==='ar'?'English':'عربي';
+  
+  const icon=theme==='dark'?'🌙':'☀️';
+  ['themeBtn','themeBtnL'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=icon;});
+
   initSliders();
   translate();
   setInterval(tickClock,1000);

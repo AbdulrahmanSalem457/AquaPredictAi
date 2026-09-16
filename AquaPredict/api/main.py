@@ -615,7 +615,7 @@ def generate_pdf_report_api(sensors: StationSensors, api_key: str = Depends(get_
     pdf.cell(200, 10, txt=f"Flow Rate: {sensors.Flow_Rate} m3/h", ln=True)
     pdf.cell(200, 10, txt=f"Salinity: {sensors.Salinity} PPM", ln=True)
     pdf.cell(200, 10, txt=f"Temperature: {sensors.Temperature} C", ln=True)
-    pdf.cell(200, 10, txt=f"pH Level: {sensors.pH_Level}", ln=True)
+    pdf.cell(200, 10, txt=f"pH Level: {sensors.pH}", ln=True)
     
     file_name = f"AquaPredict_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     file_path = os.path.join(ARCHIVE_DIR, file_name)

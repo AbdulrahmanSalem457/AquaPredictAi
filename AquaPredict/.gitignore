@@ -4,3 +4,5 @@ __pycache__/
 *.db-shm
 *.db-wal
 patch_*.py
+archived_reports/
+

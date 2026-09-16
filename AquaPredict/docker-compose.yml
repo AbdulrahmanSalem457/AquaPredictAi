@@ -11,6 +11,7 @@ services:
       - .:/app
     environment:
       - PYTHONUNBUFFERED=1
+      - TZ=Africa/Cairo
     restart: unless-stopped
 
   dashboard:
@@ -24,6 +25,7 @@ services:
     environment:
       - API_BASE_URL=http://api:8000/api/v1
       - PYTHONUNBUFFERED=1
+      - TZ=Africa/Cairo
     depends_on:
       - api
     restart: unless-stopped
